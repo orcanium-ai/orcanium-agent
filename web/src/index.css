@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design Tokens ──────────────────────────────────────── */
+:root {
+    --color-sidebar-bg: #0e1321;
+    --color-sidebar-border: #1b253d;
+    --color-surface: #0e1321;
+    --color-surface-hover: #151d30;
+    --color-surface-active: rgba(59, 130, 246, 0.08);
+    --color-border: #1b253d;
+    --color-border-light: #1f2c47;
+    --color-text: #e2e8f0;
+    --color-text-secondary: #94a3b8;
+    --color-text-tertiary: #64748b;
+    --color-accent: #60a5fa;
+    --color-accent-border: rgba(96, 165, 250, 0.3);
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 56px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #1f2c47;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3b82f6;
+}
+
+body {
+    overflow-x: hidden;
+    background: #070a13;
+    color: #e2e8f0;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* ── Selection ──────────────────────────────────────────── */
+::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: #fff;
+}

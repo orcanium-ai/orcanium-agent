@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# Orcanium Agent CLI — bin/orcanium [command] [options]
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+PY="${ORCANIUM_PYTHON:-python3}"
+
+if [ -d "$REPO_ROOT/orcanium/cli" ]; then
+    # Local checkout — add repo root to PYTHONPATH so `orcanium` is importable
+    # without requiring `pip install -e`.
+    PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
+        exec "$PY" -m orcanium.cli "$@"
+else
+    # Installed via pip — package is on sys.path from the install.
+    exec "$PY" -m orcanium.cli "$@"
+fi

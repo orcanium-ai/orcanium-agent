@@ -1,0 +1,5 @@
+name: orcanium-provider
+kind: model-provider
+version: 1.0.0
+description: Orcanium Portal
+author: Orcanium

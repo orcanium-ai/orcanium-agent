@@ -1,0 +1,9 @@
+include LICENSE README.md
+include orcanium/py.typed
+graft locales
+graft optional-mcps
+graft plugins
+graft skills
+graft optional-skills
+global-exclude __pycache__
+global-exclude *.py[cod]
