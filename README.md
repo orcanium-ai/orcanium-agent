@@ -216,5 +216,5 @@ This project is licensed under the Apache License 2.0 — see the [LICENSE](LICE
 ---
 
 <p align="center">
-  <b>Run your own multi-agent fleet 🐙</b>
+  <b>Run your own multi-agent fleet</b>
 </p>
