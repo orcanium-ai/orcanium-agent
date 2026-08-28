@@ -1,4 +1,4 @@
-# Orcanium 🐙
+# Orcanium
 
 **Multi-agent runtime** — run multiple agents in one process, each with its own LLM provider, personality, memory, knowledge base, schedule, and messaging channel.
 
