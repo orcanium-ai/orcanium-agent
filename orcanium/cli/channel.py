@@ -4304,55 +4304,6 @@ _PLATFORMS = [
         ],
     },
     {
-        "key": "matrix",
-        "label": "Matrix",
-        "emoji": "🔐",
-        "token_var": "MATRIX_ACCESS_TOKEN",
-        "setup_instructions": [
-            "1. Works with any Matrix homeserver (self-hosted Synapse/Conduit/Dendrite or matrix.org)",
-            "2. Create a bot user on your homeserver, or use your own account",
-            "3. Get an access token: Element → Settings → Help & About → Access Token",
-            "   Or via API: curl -X POST https://your-server/_matrix/client/v3/login \\",
-            '     -d \'{"type":"m.login.password","user":"@bot:server","password":"..."}\'',
-            "4. Alternatively, provide user ID + password and Orcanium will log in directly",
-            "5. For E2EE: set MATRIX_ENCRYPTION=true (requires pip install 'mautrix[encryption]')",
-            "6. To find your user ID: it's @username:your-server (shown in Element profile)",
-        ],
-        "vars": [
-            {
-                "name": "MATRIX_HOMESERVER",
-                "prompt": "Homeserver URL (e.g. https://matrix.example.org)",
-                "password": False,
-                "help": "Your Matrix homeserver URL. Works with any self-hosted instance.",
-            },
-            {
-                "name": "MATRIX_ACCESS_TOKEN",
-                "prompt": "Access token (leave empty to use password login instead)",
-                "password": True,
-                "help": "Paste your access token, or leave empty and provide user ID + password below.",
-            },
-            {
-                "name": "MATRIX_USER_ID",
-                "prompt": "User ID (@bot:server — required for password login)",
-                "password": False,
-                "help": "Full Matrix user ID, e.g. @Orcanium:matrix.example.org",
-            },
-            {
-                "name": "MATRIX_ALLOWED_USERS",
-                "prompt": "Allowed user IDs (comma-separated, e.g. @you:server)",
-                "password": False,
-                "is_allowlist": True,
-                "help": "Matrix user IDs who can interact with the bot.",
-            },
-            {
-                "name": "MATRIX_HOME_ROOM",
-                "prompt": "Home room ID (for cron/notification delivery, or empty to set later with /set-home)",
-                "password": False,
-                "help": "Room ID (e.g. !abc123:server) for delivering cron results and notifications.",
-            },
-        ],
-    },
-    {
         "key": "mattermost",
         "label": "Mattermost",
         "emoji": "💬",
@@ -4507,85 +4458,6 @@ _PLATFORMS = [
         ],
     },
     {
-        "key": "dingtalk",
-        "label": "DingTalk",
-        "emoji": "💬",
-        "token_var": "DINGTALK_CLIENT_ID",
-        "setup_instructions": [
-            "1. Go to https://open-dev.dingtalk.com → Create Application",
-            "2. Under 'Credentials', copy the AppKey (Client ID) and AppSecret (Client Secret)",
-            "3. Enable 'Stream Mode' under the bot settings",
-            "4. Add the bot to a group chat or message it directly",
-        ],
-        "vars": [
-            {
-                "name": "DINGTALK_CLIENT_ID",
-                "prompt": "AppKey (Client ID)",
-                "password": False,
-                "help": "The AppKey from your DingTalk application credentials.",
-            },
-            {
-                "name": "DINGTALK_CLIENT_SECRET",
-                "prompt": "AppSecret (Client Secret)",
-                "password": True,
-                "help": "The AppSecret from your DingTalk application credentials.",
-            },
-        ],
-    },
-    {
-        "key": "feishu",
-        "label": "Feishu / Lark",
-        "emoji": "🪽",
-        "token_var": "FEISHU_APP_ID",
-        "setup_instructions": [
-            "1. Go to https://open.feishu.cn/ (or https://open.larksuite.com/ for Lark)",
-            "2. Create an app and copy the App ID and App Secret",
-            "3. Enable the Bot capability for the app",
-            "4. Choose WebSocket (recommended) or Webhook connection mode",
-            "5. Add the bot to a group chat or message it directly",
-            "6. Restrict access with FEISHU_ALLOWED_USERS for production use",
-        ],
-        "vars": [
-            {
-                "name": "FEISHU_APP_ID",
-                "prompt": "App ID",
-                "password": False,
-                "help": "The App ID from your Feishu/Lark application.",
-            },
-            {
-                "name": "FEISHU_APP_SECRET",
-                "prompt": "App Secret",
-                "password": True,
-                "help": "The App Secret from your Feishu/Lark application.",
-            },
-            {
-                "name": "FEISHU_DOMAIN",
-                "prompt": "Domain — feishu or lark (default: feishu)",
-                "password": False,
-                "help": "Use 'feishu' for Feishu China, or 'lark' for Lark international.",
-            },
-            {
-                "name": "FEISHU_CONNECTION_MODE",
-                "prompt": "Connection mode — websocket or webhook (default: websocket)",
-                "password": False,
-                "help": "websocket is recommended unless you specifically need webhook mode.",
-            },
-            {
-                "name": "FEISHU_ALLOWED_USERS",
-                "prompt": "Allowed user IDs (comma-separated, or empty)",
-                "password": False,
-                "is_allowlist": True,
-                "help": "Restrict which Feishu/Lark users can interact with the bot.",
-            },
-            {
-                "name": "FEISHU_HOME_CHANNEL",
-                "prompt": "Home chat ID (optional, for cron/notifications)",
-                "password": False,
-                "help": "Chat ID for scheduled results and notifications.",
-            },
-        ],
-    },
-    {
         "key": "wecom",
         "label": "WeCom (Enterprise WeChat)",
         "emoji": "💬",
@@ -4685,12 +4557,6 @@ _PLATFORMS = [
         ],
     },
     {
-        "key": "weixin",
-        "label": "Weixin / WeChat",
-        "emoji": "💬",
-        "token_var": "WEIXIN_ACCOUNT_ID",
-    },
-    {
         "key": "bluebubbles",
         "label": "BlueBubbles (iMessage)",
         "emoji": "💬",
@@ -4773,32 +4639,6 @@ _PLATFORMS = [
             },
         ],
     },
-    {
-        "key": "yuanbao",
-        "label": "Yuanbao",
-        "emoji": "💎",
-        "token_var": "YUANBAO_APP_ID",
-        "setup_instructions": [
-            "1. Download the Yuanbao app from https://yuanbao.tencent.com/",
-            "2. In the app, go to PAI → My Bot and create a new bot",
-            "3. After the bot is created, copy the App ID and App Secret",
-            "4. Enter them below and Orcanium will connect automatically over WebSocket",
-        ],
-        "vars": [
-            {
-                "name": "YUANBAO_APP_ID",
-                "prompt": "App ID",
-                "password": False,
-                "help": "The App ID from your Yuanbao IM Bot credentials.",
-            },
-            {
-                "name": "YUANBAO_APP_SECRET",
-                "prompt": "App Secret",
-                "password": True,
-                "help": "The App Secret (used for HMAC signing) from your Yuanbao IM Bot.",
-            },
-        ],
-    },
 ]
 
 
@@ -4811,15 +4651,6 @@ def _all_platforms() -> list[dict]:
     ``orcanium setup channel`` without needing the channel to be running.
     Built-ins keep their dict shape; plugin entries are adapted to the same
     shape with ``_registry_entry`` holding the source.
-
-    Platform-specific gating: some platforms can't be configured on
-    every host. Currently:
-      - Matrix is hidden on Windows. The [matrix] extra pulls
-        ``mautrix[encryption]`` -> ``python-olm``, which has no Windows
-        wheel and needs ``make`` + libolm to build from sdist. There's
-        no native Windows path that works, so we don't offer it in the
-        picker. Users who want Matrix on Windows can run Orcanium under
-        WSL.
     """
     # Populate the registry so plugin platforms are visible. Idempotent.
     # Bundled platform plugins (``kind: platform``) auto-load unconditionally,
@@ -4834,10 +4665,6 @@ def _all_platforms() -> list[dict]:
         logger.debug("plugin discovery failed during platform enumeration: %s", e)
 
     platforms = [dict(p) for p in _PLATFORMS]
-
-    # Drop platforms that can't function on this host. See docstring.
-    if sys.platform == "win32":
-        platforms = [p for p in platforms if p.get("key") != "matrix"]
 
     by_key = {p["key"]: p for p in platforms}
 
@@ -4918,23 +4745,6 @@ def _platform_status(platform: dict) -> str:
         if all([val, pwd, imap, smtp]):
             return "configured"
         if any([val, pwd, imap, smtp]):
-            return "partially configured"
-        return "not configured"
-    if platform.get("key") == "matrix":
-        homeserver = get_env_value("MATRIX_HOMESERVER")
-        password = get_env_value("MATRIX_PASSWORD")
-        if (val or password) and homeserver:
-            e2ee = get_env_value("MATRIX_ENCRYPTION")
-            suffix = " + E2EE" if e2ee and e2ee.lower() in {"true", "1", "yes"} else ""
-            return f"configured{suffix}"
-        if val or password or homeserver:
-            return "partially configured"
-        return "not configured"
-    if platform.get("key") == "weixin":
-        token = get_env_value("WEIXIN_TOKEN")
-        if val and token:
-            return "configured"
-        if val or token:
             return "partially configured"
         return "not configured"
     if val:
@@ -5144,64 +4954,6 @@ def _setup_whatsapp():
     cmd_whatsapp(argparse.Namespace())
 
 
-def _setup_dingtalk():
-    """Configure DingTalk — QR scan (recommended) or manual credential entry."""
-    from orcanium.cli.setup import (
-        prompt_choice,
-        prompt_yes_no,
-        print_success,
-        print_warning,
-    )
-
-    dingtalk_platform = next(p for p in _PLATFORMS if p["key"] == "dingtalk")
-    emoji = dingtalk_platform["emoji"]
-    label = dingtalk_platform["label"]
-
-    print()
-    print(color(f"  ─── {emoji} {label} Setup ───", Colors.CYAN))
-
-    existing = get_env_value("DINGTALK_CLIENT_ID")
-    if existing:
-        print()
-        print_success(f"{label} is already configured (Client ID: {existing}).")
-        if not prompt_yes_no(f"  Reconfigure {label}?", False):
-            return
-
-    print()
-    method = prompt_choice(
-        "  Choose setup method",
-        [
-            "QR Code Scan (Recommended, auto-obtain Client ID and Client Secret)",
-            "Manual Input (Client ID and Client Secret)",
-        ],
-        default=0,
-    )
-
-    if method == 0:
-        # ── QR-code device-flow authorization ──
-        try:
-            from orcanium.cli.dingtalk_auth import dingtalk_qr_auth
-        except ImportError as exc:
-            print_warning(
-                f"  QR auth module failed to load ({exc}), falling back to manual input."
-            )
-            _setup_standard_platform(dingtalk_platform)
-            return
-
-        result = dingtalk_qr_auth()
-        if result is None:
-            print_warning("  QR auth incomplete, falling back to manual input.")
-            _setup_standard_platform(dingtalk_platform)
-            return
-
-        client_id, client_secret = result
-        save_env_value("DINGTALK_CLIENT_ID", client_id)
-        save_env_value("DINGTALK_CLIENT_SECRET", client_secret)
-        print()
-        print_success(f"{emoji} {label} configured via QR scan!")
-    else:
-        # ── Manual entry ──
-        _setup_standard_platform(dingtalk_platform)
 
 
 def _setup_wecom():
@@ -5402,364 +5154,8 @@ def _is_service_running() -> bool:
     return len(find_gateway_pids()) > 0
 
 
-def _setup_weixin():
-    """Interactive setup for Weixin / WeChat personal accounts."""
-    print()
-    print(color("  ─── 💬 Weixin / WeChat Setup ───", Colors.CYAN))
-    print()
-    print_info("  1. Orcanium will open Tencent iLink QR login in this terminal.")
-    print_info("  2. Use WeChat to scan and confirm the QR code.")
-    print_info(
-        "  3. Orcanium will store the returned account_id/token in ~/.Orcanium/.env."
-    )
-    print_info(
-        "  4. This adapter supports native text, image, video, and document delivery."
-    )
-
-    existing_account = get_env_value("WEIXIN_ACCOUNT_ID")
-    existing_token = get_env_value("WEIXIN_TOKEN")
-    if existing_account and existing_token:
-        print()
-        print_success("Weixin is already configured.")
-        if not prompt_yes_no("  Reconfigure Weixin?", False):
-            return
-
-    try:
-        from orcanium.channel.platforms.weixin import check_weixin_requirements, qr_login
-    except Exception as exc:
-        print_error(f"  Weixin adapter import failed: {exc}")
-        print_info("  Install channel dependencies first, then retry.")
-        return
-
-    if not check_weixin_requirements():
-        print_error("  Missing dependencies: Weixin needs aiohttp and cryptography.")
-        print_info("  Install them, then rerun `orcanium channel setup`.")
-        return
-
-    print()
-    if not prompt_yes_no("  Start QR login now?", True):
-        print_info("  Cancelled.")
-        return
-
-    import asyncio
-
-    try:
-        credentials = asyncio.run(qr_login(str(get_orcanium_home())))
-    except KeyboardInterrupt:
-        print()
-        print_warning("  Weixin setup cancelled.")
-        return
-    except Exception as exc:
-        print_error(f"  QR login failed: {exc}")
-        return
-
-    if not credentials:
-        print_warning("  QR login did not complete.")
-        return
-
-    account_id = credentials.get("account_id", "")
-    token = credentials.get("token", "")
-    base_url = credentials.get("base_url", "")
-    user_id = credentials.get("user_id", "")
-
-    save_env_value("WEIXIN_ACCOUNT_ID", account_id)
-    save_env_value("WEIXIN_TOKEN", token)
-    if base_url:
-        save_env_value("WEIXIN_BASE_URL", base_url)
-    save_env_value(
-        "WEIXIN_CDN_BASE_URL",
-        get_env_value("WEIXIN_CDN_BASE_URL") or "https://novac2c.cdn.weixin.qq.com/c2c",
-    )
-
-    print()
-    access_choices = [
-        "Use DM pairing approval (recommended)",
-        "Allow all direct messages",
-        "Only allow listed user IDs",
-        "Disable direct messages",
-    ]
-    access_idx = prompt_choice(
-        "  How should direct messages be authorized?", access_choices, 0
-    )
-    if access_idx == 0:
-        save_env_value("WEIXIN_DM_POLICY", "pairing")
-        save_env_value("WEIXIN_ALLOW_ALL_USERS", "false")
-        save_env_value("WEIXIN_ALLOWED_USERS", "")
-        print_success("  DM pairing enabled.")
-        print_info(
-            "  Unknown DM users can request access and you approve them with `orcanium pairing approve`."
-        )
-    elif access_idx == 1:
-        save_env_value("WEIXIN_DM_POLICY", "open")
-        save_env_value("WEIXIN_ALLOW_ALL_USERS", "true")
-        save_env_value("WEIXIN_ALLOWED_USERS", "")
-        print_warning("  Open DM access enabled for Weixin.")
-    elif access_idx == 2:
-        default_allow = user_id or ""
-        allowlist = prompt(
-            "  Allowed Weixin user IDs (comma-separated)", default_allow, password=False
-        ).replace(" ", "")
-        save_env_value("WEIXIN_DM_POLICY", "allowlist")
-        save_env_value("WEIXIN_ALLOW_ALL_USERS", "false")
-        save_env_value("WEIXIN_ALLOWED_USERS", allowlist)
-        print_success("  Weixin allowlist saved.")
-    else:
-        save_env_value("WEIXIN_DM_POLICY", "disabled")
-        save_env_value("WEIXIN_ALLOW_ALL_USERS", "false")
-        save_env_value("WEIXIN_ALLOWED_USERS", "")
-        print_warning("  Direct messages disabled.")
-
-    print()
-    print_info(
-        "  Note: QR login connects an iLink bot identity (e.g. ...@im.bot), not a"
-    )
-    print_info(
-        "  scriptable personal WeChat account. Ordinary WeChat groups typically cannot"
-    )
-    print_info(
-        "  invite an @im.bot identity, and iLink does not deliver ordinary-group events"
-    )
-    print_info(
-        "  to most bot accounts. The settings below only apply when iLink actually"
-    )
-    print_info(
-        "  delivers group events for your account type — otherwise DM remains the only"
-    )
-    print_info("  working channel regardless of this choice.")
-    group_choices = [
-        "Disable group chats (recommended)",
-        "Allow all group chats",
-        "Only allow listed group chat IDs",
-    ]
-    group_idx = prompt_choice("  How should group chats be handled?", group_choices, 0)
-    if group_idx == 0:
-        save_env_value("WEIXIN_GROUP_POLICY", "disabled")
-        save_env_value("WEIXIN_GROUP_ALLOWED_USERS", "")
-        print_info("  Group chats disabled.")
-    elif group_idx == 1:
-        save_env_value("WEIXIN_GROUP_POLICY", "open")
-        save_env_value("WEIXIN_GROUP_ALLOWED_USERS", "")
-        print_warning(
-            "  All group chats enabled (only takes effect if iLink delivers group events)."
-        )
-    else:
-        allow_groups = prompt(
-            "  Allowed group chat IDs (comma-separated, not member user IDs)",
-            "",
-            password=False,
-        ).replace(" ", "")
-        save_env_value("WEIXIN_GROUP_POLICY", "allowlist")
-        save_env_value("WEIXIN_GROUP_ALLOWED_USERS", allow_groups)
-        print_success(
-            "  Group allowlist saved (only takes effect if iLink delivers group events)."
-        )
-
-    if user_id:
-        print()
-        if prompt_yes_no(
-            f"  Use your Weixin user ID ({user_id}) as the home channel?", True
-        ):
-            save_env_value("WEIXIN_HOME_CHANNEL", user_id)
-            print_success(f"  Home channel set to {user_id}")
-
-    print()
-    print_success("Weixin configured!")
-    print_info(f"  Account ID: {account_id}")
-    if user_id:
-        print_info(f"  User ID: {user_id}")
 
 
-def _setup_feishu():
-    """Interactive setup for Feishu / Lark — scan-to-create or manual credentials."""
-    print()
-    print(color("  ─── 🪽 Feishu / Lark Setup ───", Colors.CYAN))
-
-    existing_app_id = get_env_value("FEISHU_APP_ID")
-    existing_secret = get_env_value("FEISHU_APP_SECRET")
-    if existing_app_id and existing_secret:
-        print()
-        print_success("Feishu / Lark is already configured.")
-        if not prompt_yes_no("  Reconfigure Feishu / Lark?", False):
-            return
-
-    # ── Choose setup method ──
-    print()
-    method_choices = [
-        "Scan QR code to create a new bot automatically (recommended)",
-        "Enter existing App ID and App Secret manually",
-    ]
-    method_idx = prompt_choice(
-        "  How would you like to set up Feishu / Lark?", method_choices, 0
-    )
-
-    credentials = None
-    used_qr = False
-
-    if method_idx == 0:
-        # ── QR scan-to-create ──
-        try:
-            from orcanium.channel.platforms.feishu import qr_register
-        except Exception as exc:
-            print_error(f"  Feishu / Lark onboard import failed: {exc}")
-            qr_register = None
-
-        if qr_register is not None:
-            try:
-                credentials = qr_register()
-            except KeyboardInterrupt:
-                print()
-                print_warning("  Feishu / Lark setup cancelled.")
-                return
-            except Exception as exc:
-                print_warning(f"  QR registration failed: {exc}")
-        if credentials:
-            used_qr = True
-        if not credentials:
-            print_info("  QR setup did not complete. Continuing with manual input.")
-
-    # ── Manual credential input ──
-    if not credentials:
-        print()
-        print_info(
-            "  Go to https://open.feishu.cn/ (or https://open.larksuite.com/ for Lark)"
-        )
-        print_info(
-            "  Create an app, enable the Bot capability, and copy the credentials."
-        )
-        print()
-        app_id = prompt("  App ID", password=False)
-        if not app_id:
-            print_warning("  Skipped — Feishu / Lark won't work without an App ID.")
-            return
-        app_secret = prompt("  App Secret", password=True)
-        if not app_secret:
-            print_warning("  Skipped — Feishu / Lark won't work without an App Secret.")
-            return
-
-        domain_choices = ["feishu (China)", "lark (International)"]
-        domain_idx = prompt_choice("  Domain", domain_choices, 0)
-        domain = "lark" if domain_idx == 1 else "feishu"
-
-        # Try to probe the bot with manual credentials
-        bot_name = None
-        try:
-            from orcanium.channel.platforms.feishu import probe_bot
-
-            bot_info = probe_bot(app_id, app_secret, domain)
-            if bot_info:
-                bot_name = bot_info.get("bot_name")
-                print_success(f"  Credentials verified — bot: {bot_name or 'unnamed'}")
-            else:
-                print_warning(
-                    "  Could not verify bot connection. Credentials saved anyway."
-                )
-        except Exception as exc:
-            print_warning(f"  Credential verification skipped: {exc}")
-
-        credentials = {
-            "app_id": app_id,
-            "app_secret": app_secret,
-            "domain": domain,
-            "open_id": None,
-            "bot_name": bot_name,
-        }
-
-    # ── Save core credentials ──
-    app_id = credentials["app_id"]
-    app_secret = credentials["app_secret"]
-    domain = credentials.get("domain", "feishu")
-    open_id = credentials.get("open_id")
-    bot_name = credentials.get("bot_name")
-
-    save_env_value("FEISHU_APP_ID", app_id)
-    save_env_value("FEISHU_APP_SECRET", app_secret)
-    save_env_value("FEISHU_DOMAIN", domain)
-    # Bot identity is resolved at runtime via _hydrate_bot_identity().
-
-    # ── Connection mode ──
-    if used_qr:
-        connection_mode = "websocket"
-    else:
-        print()
-        mode_choices = [
-            "WebSocket (recommended — no public URL needed)",
-            "Webhook (requires a reachable HTTP endpoint)",
-        ]
-        mode_idx = prompt_choice("  Connection mode", mode_choices, 0)
-        connection_mode = "webhook" if mode_idx == 1 else "websocket"
-        if connection_mode == "webhook":
-            print_info("  Webhook defaults: 127.0.0.1:8765/feishu/webhook")
-            print_info(
-                "  Override with FEISHU_WEBHOOK_HOST / FEISHU_WEBHOOK_PORT / FEISHU_WEBHOOK_PATH"
-            )
-            print_info(
-                "  For signature verification, set FEISHU_ENCRYPT_KEY and FEISHU_VERIFICATION_TOKEN"
-            )
-    save_env_value("FEISHU_CONNECTION_MODE", connection_mode)
-
-    if bot_name:
-        print()
-        print_success(f"  Bot created: {bot_name}")
-
-    # ── DM security policy ──
-    print()
-    access_choices = [
-        "Use DM pairing approval (recommended)",
-        "Allow all direct messages",
-        "Only allow listed user IDs",
-    ]
-    access_idx = prompt_choice(
-        "  How should direct messages be authorized?", access_choices, 0
-    )
-    if access_idx == 0:
-        save_env_value("FEISHU_ALLOW_ALL_USERS", "false")
-        save_env_value("FEISHU_ALLOWED_USERS", "")
-        print_success("  DM pairing enabled.")
-        print_info(
-            "  Unknown users can request access; approve with `orcanium pairing approve`."
-        )
-    elif access_idx == 1:
-        save_env_value("FEISHU_ALLOW_ALL_USERS", "true")
-        save_env_value("FEISHU_ALLOWED_USERS", "")
-        print_warning("  Open DM access enabled for Feishu / Lark.")
-    else:
-        save_env_value("FEISHU_ALLOW_ALL_USERS", "false")
-        default_allow = open_id or ""
-        allowlist = prompt(
-            "  Allowed user IDs (comma-separated)", default_allow, password=False
-        ).replace(" ", "")
-        save_env_value("FEISHU_ALLOWED_USERS", allowlist)
-        print_success("  Allowlist saved.")
-
-    # ── Group policy ──
-    print()
-    group_choices = [
-        "Respond only when @mentioned in groups (recommended)",
-        "Disable group chats",
-    ]
-    group_idx = prompt_choice("  How should group chats be handled?", group_choices, 0)
-    if group_idx == 0:
-        save_env_value("FEISHU_GROUP_POLICY", "open")
-        print_info("  Group chats enabled (bot must be @mentioned).")
-    else:
-        save_env_value("FEISHU_GROUP_POLICY", "disabled")
-        print_info("  Group chats disabled.")
-
-    # ── Home channel ──
-    print()
-    home_channel = prompt(
-        "  Home chat ID (optional, for cron/notifications)", password=False
-    )
-    if home_channel:
-        save_env_value("FEISHU_HOME_CHANNEL", home_channel)
-        print_success(f"  Home channel set to {home_channel}")
-
-    print()
-    print_success("🪽 Feishu / Lark configured!")
-    print_info(f"  App ID: {app_id}")
-    print_info(f"  Domain: {domain}")
-    if bot_name:
-        print_info(f"  Bot: {bot_name}")
 
 
 def _setup_qqbot():
@@ -6033,7 +5429,6 @@ def _builtin_setup_fn(key: str):
         # plugins/platforms/discord/adapter.py::register() and dispatched
         # via the plugin path in _configure_platform().
         "slack": _s._setup_slack,
-        "matrix": _s._setup_matrix,
         # mattermost moved into the plugin: setup_fn is registered by
         # plugins/platforms/mattermost/adapter.py::register() and dispatched
         # via the plugin path in _configure_platform().
@@ -6041,9 +5436,6 @@ def _builtin_setup_fn(key: str):
         "webhooks": _s._setup_webhooks,
         "signal": _setup_signal,
         "whatsapp": _setup_whatsapp,
-        "weixin": _setup_weixin,
-        "dingtalk": _setup_dingtalk,
-        "feishu": _setup_feishu,
         "wecom": _setup_wecom,
         "qqbot": _setup_qqbot,
     }.get(key)

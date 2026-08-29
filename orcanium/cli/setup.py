@@ -1288,38 +1288,50 @@ def setup_terminal_backend(config: dict):
     current_backend = cfg_get(config, "terminal", "backend", default="local")
     is_linux = _platform.system() == "Linux"
 
-    # Build backend choices with descriptions
-    terminal_choices = [
+    # Main backends shown up front; cloud/HPC ones are tucked behind an
+    # "Advanced" prompt so first-time users only weigh the common choices.
+    main_choices = [
         "Local - run directly on this machine (default)",
         "Docker - isolated container with configurable resources",
-        "Modal - serverless cloud sandbox",
         "SSH - run on a remote machine",
+    ]
+    main_idx_to_backend = {0: "local", 1: "docker", 2: "ssh"}
+
+    advanced_choices = [
+        "Modal - serverless cloud sandbox",
         "Daytona - persistent cloud development environment",
     ]
-    idx_to_backend = {0: "local", 1: "docker", 2: "modal", 3: "ssh", 4: "daytona"}
-    backend_to_idx = {"local": 0, "docker": 1, "modal": 2, "ssh": 3, "daytona": 4}
-
-    next_idx = 5
+    adv_idx_to_backend = {0: "modal", 1: "daytona"}
     if is_linux:
-        terminal_choices.append("Singularity/Apptainer - HPC-friendly container")
-        idx_to_backend[next_idx] = "singularity"
-        backend_to_idx["singularity"] = next_idx
-        next_idx += 1
+        advanced_choices.append("Singularity/Apptainer - HPC-friendly container")
+        adv_idx_to_backend[len(adv_idx_to_backend)] = "singularity"
 
-    # Add keep current option
-    keep_current_idx = next_idx
-    terminal_choices.append(f"Keep current ({current_backend})")
-    idx_to_backend[keep_current_idx] = current_backend
+    # Append "Keep current" and the advanced-menu entry to the main list.
+    keep_current_idx = len(main_choices)
+    advanced_idx = keep_current_idx + 1
+    main_choices.append(f"Keep current ({current_backend})")
+    main_choices.append("Advanced / cloud backends (Modal, Daytona, ...)")
 
     terminal_idx = prompt_choice(
-        "Select terminal backend:", terminal_choices, keep_current_idx
+        "Select terminal backend:", main_choices, keep_current_idx
     )
-
-    selected_backend = idx_to_backend.get(terminal_idx)
 
     if terminal_idx == keep_current_idx:
         print_info(f"Keeping current backend: {current_backend}")
         return
+    if terminal_idx == advanced_idx:
+        # Secondary prompt for cloud/HPC backends, with a keep-current fallback.
+        adv_keep_idx = len(advanced_choices)
+        advanced_choices.append(f"Keep current ({current_backend})")
+        adv_idx = prompt_choice(
+            "Select advanced / cloud backend:", advanced_choices, adv_keep_idx
+        )
+        if adv_idx == adv_keep_idx:
+            print_info(f"Keeping current backend: {current_backend}")
+            return
+        selected_backend = adv_idx_to_backend[adv_idx]
+    else:
+        selected_backend = main_idx_to_backend[terminal_idx]
 
     config.setdefault("terminal", {})["backend"] = selected_backend
 
@@ -2165,144 +2177,6 @@ def _write_slack_manifest_and_instruct():
         )
 
 
-def _setup_matrix():
-    """Configure Matrix credentials."""
-    print_header("Matrix")
-    existing = get_env_value("MATRIX_ACCESS_TOKEN") or get_env_value("MATRIX_PASSWORD")
-    if existing:
-        print_info("Matrix: already configured")
-        if not prompt_yes_no("Reconfigure Matrix?", False):
-            return
-
-    print_info(
-        "Works with any Matrix homeserver (Synapse, Conduit, Dendrite, or matrix.org)."
-    )
-    print_info("   1. Create a bot user on your homeserver, or use your own account")
-    print_info("   2. Get an access token from Element, or provide user ID + password")
-    print()
-    homeserver = prompt("Homeserver URL (e.g. https://matrix.example.org)")
-    if homeserver:
-        save_env_value("MATRIX_HOMESERVER", homeserver.rstrip("/"))
-
-    print()
-    print_info("Auth: provide an access token (recommended), or user ID + password.")
-    token = prompt("Access token (leave empty for password login)", password=True)
-    if token:
-        save_env_value("MATRIX_ACCESS_TOKEN", token)
-        user_id = prompt("User ID (@bot:server — optional, will be auto-detected)")
-        if user_id:
-            save_env_value("MATRIX_USER_ID", user_id)
-        print_success("Matrix access token saved")
-    else:
-        user_id = prompt("User ID (@bot:server)")
-        if user_id:
-            save_env_value("MATRIX_USER_ID", user_id)
-        password = prompt("Password", password=True)
-        if password:
-            save_env_value("MATRIX_PASSWORD", password)
-            print_success("Matrix credentials saved")
-
-    if token or get_env_value("MATRIX_PASSWORD"):
-        print()
-        want_e2ee = prompt_yes_no("Enable end-to-end encryption (E2EE)?", False)
-        if want_e2ee:
-            save_env_value("MATRIX_ENCRYPTION", "true")
-            print_success("E2EE enabled")
-
-        matrix_pkg = "mautrix[encryption]" if want_e2ee else "mautrix"
-        # Use the central lazy-deps feature group so we install ALL of
-        # platform.matrix's dependencies (mautrix, Markdown, aiosqlite,
-        # asyncpg, aiohttp-socks) — not just mautrix itself.  The previous
-        # hand-rolled ``pip install mautrix[encryption]`` left asyncpg /
-        # aiosqlite uninstalled and broke E2EE connect with
-        # ``No module named 'asyncpg'`` on every fresh install (#31116).
-        try:
-            from orcanium.app.tools.lazy_deps import ensure as _lazy_ensure
-            from orcanium.app.tools.lazy_deps import feature_missing
-
-            _missing_before = feature_missing("platform.matrix")
-            if _missing_before:
-                print_info(
-                    f"Installing {matrix_pkg} (+ {len(_missing_before)} runtime deps)..."
-                )
-                try:
-                    _lazy_ensure("platform.matrix", prompt=False)
-                    print_success(f"{matrix_pkg} installed")
-                except Exception as exc:
-                    print_warning(
-                        f"Install failed — run manually: pip install "
-                        f"'mautrix[encryption]' asyncpg aiosqlite Markdown "
-                        f"aiohttp-socks"
-                    )
-                    print_info(f"  Error: {exc}")
-        except ImportError:
-            # tools.lazy_deps unavailable (extreme edge case — partial
-            # install).  Fall back to the legacy single-package install
-            # path so the wizard still does *something*.
-            try:
-                __import__("mautrix")
-            except ImportError:
-                print_info(f"Installing {matrix_pkg}...")
-                import subprocess
-
-                uv_bin = shutil.which("uv")
-                if uv_bin:
-                    result = subprocess.run(
-                        [
-                            uv_bin,
-                            "pip",
-                            "install",
-                            "--python",
-                            sys.executable,
-                            matrix_pkg,
-                        ],
-                        capture_output=True,
-                        text=True,
-                    )
-                else:
-                    result = subprocess.run(
-                        [sys.executable, "-m", "pip", "install", matrix_pkg],
-                        capture_output=True,
-                        text=True,
-                    )
-                if result.returncode == 0:
-                    print_success(f"{matrix_pkg} installed")
-                else:
-                    print_warning(
-                        f"Install failed — run manually: pip install "
-                        f"'{matrix_pkg}' asyncpg aiosqlite Markdown aiohttp-socks"
-                    )
-                    if result.stderr:
-                        print_info(f"  Error: {result.stderr.strip().splitlines()[-1]}")
-
-        print()
-        print_info("🔒 Security: Restrict who can use your bot")
-        print_info("   Matrix user IDs look like @username:server")
-        print()
-        allowed_users = prompt(
-            "Allowed user IDs (comma-separated, leave empty for open access)"
-        )
-        if allowed_users:
-            save_env_value("MATRIX_ALLOWED_USERS", allowed_users.replace(" ", ""))
-            print_success("Matrix allowlist configured")
-        else:
-            print_info(
-                "⚠️  No allowlist set - anyone who can message the bot can use it!"
-            )
-
-        print()
-        print_info(
-            "📬 Home Room: where Orcanium delivers cron job results and notifications."
-        )
-        print_info(
-            "   Room IDs look like !abc123:server (shown in Element room settings)"
-        )
-        print_info(
-            "   You can also set this later by typing /set-home in a Matrix room."
-        )
-        home_room = prompt("Home room ID (leave empty to set later with /set-home)")
-        if home_room:
-            save_env_value("MATRIX_HOME_ROOM", home_room)
 
 
 def _setup_bluebubbles():
