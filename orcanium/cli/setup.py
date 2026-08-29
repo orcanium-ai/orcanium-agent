@@ -1612,6 +1612,92 @@ def _apply_default_agent_settings(config: dict):
     print_info("  Run `orcanium setup agent` later to customize.")
 
 
+def _validate_agent_name(name: str) -> str | None:
+    """Validate an agent name, returning an error message or None if valid.
+
+    The name becomes a directory under AGENTS_DIR, so it must be a safe single
+    path component: non-empty, no path separators, no `..`, no leading dot, no
+    control characters.
+    """
+    if not name or not name.strip():
+        return "Agent name cannot be empty."
+    if name != name.strip():
+        return "Agent name cannot have leading/trailing whitespace."
+    if any(c in name for c in ("/", "\\")):
+        return "Agent name cannot contain path separators."
+    if name in (".", ".."):
+        return "Agent name cannot be '.' or '..'."
+    if name.startswith("."):
+        return "Agent name cannot start with a dot (hidden directory)."
+    if any(ord(c) < 32 or ord(c) == 127 for c in name):
+        return "Agent name cannot contain control characters."
+    return None
+
+
+def setup_agent_identity(config: dict):
+    """Create/name the agent that messaging and runtime will bind to.
+
+    The data model is already per-agent (process -> agent -> channel), but the
+    wizard never surfaced agent creation. This step ensures a named agent
+    exists before the messaging section. Non-blocking for existing/multi-agent
+    installs.
+    """
+    from orcanium.runtime.agent_registry import resolve_agent_name
+
+    # Ensure the agent registry schema exists before querying — a fresh install
+    # may reach this step with an empty DB. Both calls are idempotent.
+    from orcanium.app.core.db import engine, init_db
+    from orcanium.app.core.migrations import run_pending_migrations
+
+    init_db()
+    run_pending_migrations(engine)
+
+    print_header("Agent Identity")
+    print_info("Name the agent — it gets an isolated workspace under")
+    print_info("  ~/.orcanium/agents/<name>/ (SOUL, SKILL, MEMORY, USER, CONFIG)")
+    print()
+
+    existing = resolve_agent_name().available
+    if existing:
+        print_info("Existing agent(s): " + ", ".join(existing))
+        create = prompt_yes_no("Create another agent?", default=False)
+        if not create:
+            print_info(f"Using existing agent '{existing[0]}'.")
+            return
+
+    # Ask until a valid, unused name is provided.
+    name = ""
+    error = None
+    while True:
+        if error:
+            print_warning(error)
+        candidate = prompt("Agent name", "").strip()
+        if not candidate:
+            print_info("Skipped — run `orcanium setup` later to create an agent.")
+            return
+        error = _validate_agent_name(candidate)
+        if error:
+            continue
+        if candidate in existing:
+            print_warning(f"Agent '{candidate}' already exists.")
+            error = "Choose a different name."
+            continue
+        name = candidate
+        break
+
+    from orcanium.app.agent.agent_manager import AgentManager
+    from orcanium.app.core.db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        AgentManager.create_agent(db, name)
+    finally:
+        db.close()
+
+    print_success(f"Agent '{name}' created.")
+    print_info("You can customize it anytime with `orcanium agent edit <name>`.")
+
+
 def setup_agent_settings(config: dict):
     """Configure agent behavior: iterations, progress display, compression, session reset."""
 
@@ -3291,6 +3377,10 @@ def run_setup_wizard(args):
     # Tune later with `orcanium setup agent`.
     if not is_existing:
         _apply_default_agent_settings(config)
+
+    # Section 3.5: Agent Identity — ensure a named agent exists before the
+    # messaging step binds to it. Non-blocking: skips itself when agents exist.
+    setup_agent_identity(config)
 
     # Section 4: Messaging Platforms
     if not (
