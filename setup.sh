@@ -83,6 +83,16 @@ sed -i.bak \
 chmod +x "$INSTALL_DIR/venv/bin/orcanium"
 info "Launcher at $INSTALL_DIR/venv/bin/orcanium"
 
+# Expose `orcanium` on PATH in any shell without relying on shell-config edits.
+# ~/.local/bin is on most PATHs by default (uv also installs there). The
+# launcher uses absolute paths, so a symlink is safe regardless of cwd.
+if [ -d "$HOME/.local/bin" ]; then
+    ln -sf "$INSTALL_DIR/venv/bin/orcanium" "$HOME/.local/bin/orcanium"
+    info "Symlinked orcanium -> $INSTALL_DIR/venv/bin/orcanium"
+else
+    info "Skipped symlink: $HOME/.local/bin missing (PATH via shell config instead)"
+fi
+
 step "Seeding config..."
 CONFIG_EXAMPLE="$INSTALL_DIR/src/orcanium/cli-config.yaml.example"
 if [ -f "$CONFIG_EXAMPLE" ] && [ ! -f "$INSTALL_DIR/config.yaml" ]; then
