@@ -212,7 +212,7 @@ def build_channel_parser(
     channel_setup_parser = gateway_subparsers.add_parser(
         "setup",
         help="Configure messaging platforms for an agent",
-        description="Interactively configure messaging platforms (Telegram, Discord, etc.) for a specific agent. Creates a GatewayChannel record linked to the agent.",
+        description="Interactively configure messaging platforms (Telegram, Discord, etc.) for a specific agent. Creates a ChannelConfig record linked to the agent.",
     )
     channel_setup_parser.add_argument(
         "--agent", type=str, default=None,

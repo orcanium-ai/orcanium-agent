@@ -1199,7 +1199,7 @@ def _gateway_edit() -> None:
     # Load existing channels
     channels = []
     try:
-        req = _ur.Request("http://localhost:8000/api/v1/gateways/")
+        req = _ur.Request("http://localhost:8000/api/v1/channels/")
         with _ur.urlopen(req, timeout=5) as resp:
             channels = _json.loads(resp.read())
     except Exception:
@@ -1208,10 +1208,10 @@ def _gateway_edit() -> None:
     if not channels:
         # Fallback: direct DB query
         try:
-            from orcanium.app.core.db import GatewayChannel, SessionLocal
+            from orcanium.app.core.db import ChannelConfig, SessionLocal
             db = SessionLocal()
             try:
-                for ch in db.query(GatewayChannel).all():
+                for ch in db.query(ChannelConfig).all():
                     cfg = ch.get_config() or {}
                     channels.append({
                         "id": ch.id,
@@ -1342,7 +1342,7 @@ def _gateway_edit() -> None:
         })
         try:
             req = _ur.Request(
-                f"http://localhost:8000/api/v1/gateways/register?{params}",
+                f"http://localhost:8000/api/v1/channels/register?{params}",
                 method="POST",
                 data=_json.dumps(config).encode("utf-8"),
                 headers={"Content-Type": "application/json"},
@@ -1354,7 +1354,7 @@ def _gateway_edit() -> None:
                 # Delete old channel
                 try:
                     delete_req = _ur.Request(
-                        f"http://localhost:8000/api/v1/gateways/{_up.quote(channel_id, safe='')}",
+                        f"http://localhost:8000/api/v1/channels/{_up.quote(channel_id, safe='')}",
                         method="DELETE",
                     )
                     with _ur.urlopen(delete_req, timeout=5):
@@ -1381,7 +1381,7 @@ def _gateway_edit() -> None:
             })
             try:
                 req = _ur.Request(
-                    f"http://localhost:8000/api/v1/gateways/register?{params}",
+                    f"http://localhost:8000/api/v1/channels/register?{params}",
                     method="POST",
                     data=_json.dumps(config).encode("utf-8"),
                     headers={"Content-Type": "application/json"},
@@ -1398,7 +1398,7 @@ def _gateway_edit() -> None:
         new_enabled = not channel.get("enabled", False)
         try:
             req = _ur.Request(
-                f"http://localhost:8000/api/v1/gateways/{_up.quote(channel_id, safe='')}/toggle?enabled={str(new_enabled).lower()}",
+                f"http://localhost:8000/api/v1/channels/{_up.quote(channel_id, safe='')}/toggle?enabled={str(new_enabled).lower()}",
                 method="POST",
             )
             with _ur.urlopen(req, timeout=5):
@@ -1416,7 +1416,7 @@ def _gateway_edit() -> None:
         if answer in ("y", "yes"):
             try:
                 req = _ur.Request(
-                    f"http://localhost:8000/api/v1/gateways/{_up.quote(channel_id, safe='')}",
+                    f"http://localhost:8000/api/v1/channels/{_up.quote(channel_id, safe='')}",
                     method="DELETE",
                 )
                 with _ur.urlopen(req, timeout=5):
@@ -1431,7 +1431,7 @@ def _gateway_list() -> None:
     """
     try:
         from orcanium.app.agent.agent_manager import AgentManager
-        from orcanium.app.core.db import AgentState, GatewayChannel, SessionLocal
+        from orcanium.app.core.db import AgentState, ChannelConfig, SessionLocal
     except Exception:
         print("Unable to load agent data.")
         return
@@ -1441,8 +1441,8 @@ def _gateway_list() -> None:
     try:
         AgentManager.sync_all_agents(db)
         agents = db.query(AgentState).order_by(AgentState.name).all()
-        channels = db.query(GatewayChannel).filter(
-            GatewayChannel.enabled == True
+        channels = db.query(ChannelConfig).filter(
+            ChannelConfig.enabled == True
         ).all()
     except Exception:
         agents = []
@@ -1452,7 +1452,7 @@ def _gateway_list() -> None:
 
     if not agents:
         print("  No agents configured.")
-        print("  Create one with: orcanium agent setup")
+        print("  Create one with: orcanium agent create")
         return
 
     # Build agent → channel map
@@ -4191,12 +4191,12 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, ag
     try:
         if agent_name:
             print(f"  Starting channel for agent: {agent_name}")
-            from orcanium.app.core.db import GatewayChannel, SessionLocal
+            from orcanium.app.core.db import ChannelConfig, SessionLocal
             db = SessionLocal()
             try:
-                chan = db.query(GatewayChannel).filter(
-                    GatewayChannel.platform == "telegram",
-                    GatewayChannel.enabled == True
+                chan = db.query(ChannelConfig).filter(
+                    ChannelConfig.platform == "telegram",
+                    ChannelConfig.enabled == True
                 ).first()
                 if chan:
                     config = chan.get_config() or {}
@@ -6094,9 +6094,9 @@ def _configure_platform(platform: dict) -> None:
 
 
 def _register_gateway_channel(platform: str, agent_name: str) -> None:
-    """Create or update a GatewayChannel DB record via the API.
+    """Create or update a ChannelConfig DB record via the API.
 
-    Uses the same ``POST /api/v1/gateways/register`` endpoint as the frontend
+    Uses the same ``POST /api/v1/channels/register`` endpoint as the frontend
     ``/channels`` page, with the same channel ID format: ``{platform}_{agentName}``.
 
     Falls back to direct DB write if the API is unreachable.
@@ -6116,7 +6116,7 @@ def _register_gateway_channel(platform: str, agent_name: str) -> None:
         "platform": platform,
         "enabled": "true",
     })
-    url = f"http://localhost:8000/api/v1/gateways/register?{params}"
+    url = f"http://localhost:8000/api/v1/channels/register?{params}"
     try:
         req = urllib.request.Request(
             url, method="POST",
@@ -6132,15 +6132,15 @@ def _register_gateway_channel(platform: str, agent_name: str) -> None:
 
     # Fallback: direct DB write
     try:
-        from orcanium.app.core.db import GatewayChannel, SessionLocal
+        from orcanium.app.core.db import ChannelConfig, SessionLocal
         db = SessionLocal()
         try:
-            existing = db.query(GatewayChannel).filter(GatewayChannel.id == channel_id).first()
+            existing = db.query(ChannelConfig).filter(ChannelConfig.id == channel_id).first()
             if existing:
                 existing.enabled = True
                 existing.set_config(config)
             else:
-                channel = GatewayChannel(
+                channel = ChannelConfig(
                     id=channel_id,
                     platform=platform,
                     enabled=True,
@@ -6154,7 +6154,7 @@ def _register_gateway_channel(platform: str, agent_name: str) -> None:
     except Exception as e:
         print(f"  ⚠ Could not register channel '{channel_id}': {e}")
         print("  The platform credentials are saved in .env. To register manually:")
-        print(f"    POST /api/v1/gateways/register?channel_id={channel_id}&platform={platform}&enabled=true")
+        print(f"    POST /api/v1/channels/register?channel_id={channel_id}&platform={platform}&enabled=true")
 
 
 def channel_setup(agent_name: str | None = None):
@@ -6185,7 +6185,7 @@ def channel_setup(agent_name: str | None = None):
         if not agents:
             print()
             print("  No agents configured. Create one first:")
-            print("  orcanium agent setup")
+            print("  orcanium agent create")
             print()
             return
 
@@ -6825,11 +6825,11 @@ def _stop_gateway_for_agent(agent_name: str) -> None:
     import signal as _signal
 
     try:
-        from orcanium.app.core.db import GatewayChannel, SessionLocal
+        from orcanium.app.core.db import ChannelConfig, SessionLocal
         db = SessionLocal()
         try:
-            channels = db.query(GatewayChannel).filter(
-                GatewayChannel.enabled == True
+            channels = db.query(ChannelConfig).filter(
+                ChannelConfig.enabled == True
             ).all()
             for ch in channels:
                 cfg = ch.get_config() or {}
@@ -6864,14 +6864,14 @@ def _channel_command_inner(args):
         foreground = getattr(args, "foreground", False)
         agent_name = getattr(args, "agent", None)
 
-                # If --agent not given, try to read agent from GatewayChannel config in DB
+                # If --agent not given, try to read agent from ChannelConfig config in DB
         if not agent_name:
             try:
-                from orcanium.app.core.db import GatewayChannel, SessionLocal
+                from orcanium.app.core.db import ChannelConfig, SessionLocal
                 db = SessionLocal()
                 try:
-                    channels = db.query(GatewayChannel).filter(
-                        GatewayChannel.enabled == True
+                    channels = db.query(ChannelConfig).filter(
+                        ChannelConfig.enabled == True
                     ).all()
                     agents_from_db = set()
                     for ch in channels:

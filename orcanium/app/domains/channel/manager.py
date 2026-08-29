@@ -39,10 +39,10 @@ class ChannelRunner:
 
     def start_all(self) -> None:
         _load_adapter_map()
-        from orcanium.app.core.db import GatewayChannel, SessionLocal
+        from orcanium.app.core.db import ChannelConfig, SessionLocal
         db = SessionLocal()
         try:
-            channels = db.query(GatewayChannel).filter(GatewayChannel.enabled == True).all()
+            channels = db.query(ChannelConfig).filter(ChannelConfig.enabled == True).all()
             for chan in channels:
                 self._start_adapter(chan.id, chan.platform, chan.get_config() or {})
             logger.info(f"ChannelRunner: started {len(channels)} channel(s)")

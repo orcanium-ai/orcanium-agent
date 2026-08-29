@@ -6,7 +6,7 @@ import sys
 from typing import Any, Callable
 
 from orcanium.app.agent.agent_manager import AgentManager
-from orcanium.app.core.db import AgentState, SessionLocal
+from orcanium.app.core.db import AgentState, ChannelConfig, SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +20,19 @@ def build_agent_parser(subparsers, *, cmd_agent: Callable) -> None:
     parser.set_defaults(func=cmd_agent)
     sub = parser.add_subparsers(dest="agent_command")
 
-    # setup — multi-agent interactive setup (replaces old create)
-    setup_parser = sub.add_parser(
-        "setup",
-        help="Interactively create or configure agents (supports multiple agents)",
+    # create (aliased as setup for backward compat) — multi-agent interactive setup
+    create_parser = sub.add_parser(
+        "create",
+        aliases=["setup"],
+        help="Interactively create agents (supports multiple agents)",
         description="Walk through creating one or more agents with provider, model, and optional SOUL.md. After setup, optionally configure a gateway for each agent.",
     )
-    setup_parser.add_argument(
+    create_parser.add_argument(
         "--skip-gateway",
         action="store_true",
         help="Skip gateway configuration prompt after agent setup",
     )
-    setup_parser.set_defaults(agent_func=_cmd_agent_setup)
+    create_parser.set_defaults(agent_func=_cmd_agent_setup)
 
     # list
     list_parser = sub.add_parser("list", help="List all configured agents")
@@ -49,6 +50,15 @@ def build_agent_parser(subparsers, *, cmd_agent: Callable) -> None:
     edit_parser.add_argument("--model", help="New model")
     edit_parser.add_argument("--soul", help="New SOUL.md content")
     edit_parser.set_defaults(agent_func=_cmd_agent_edit)
+
+    # config — manage an agent's messaging channel connections
+    config_parser = sub.add_parser(
+        "config",
+        help="Manage an agent's messaging channels",
+        description="Add or remove messaging channel connections for a specific agent.",
+    )
+    config_parser.add_argument("name", help="Agent name")
+    config_parser.set_defaults(agent_func=_cmd_agent_config)
 
     # remove
     remove_parser = sub.add_parser("remove", aliases=["rm"], help="Remove an agent and all its data")
@@ -439,29 +449,48 @@ def _cmd_agent_setup(args: Any) -> None:
 
 
 def _cmd_agent_list(args: Any) -> None:
-    """List all configured agents."""
+    """List all configured agents, including their connected messaging channels."""
+    # Lazy import: cli.channel is heavy; only needed when rendering the column.
+    from orcanium.cli.channel import _all_platforms
+
+    label_by_key = {
+        p.get("key", ""): p.get("label", p.get("key", "")) for p in _all_platforms()
+    }
+
     db = SessionLocal()
     try:
         AgentManager.sync_all_agents(db)
         agents = db.query(AgentState).order_by(AgentState.name).all()
 
+        # Bucket enabled channels by their bound agent.
+        agent_msgs: dict[str, list[str]] = {}
+        for ch in db.query(ChannelConfig).all():
+            if not ch.enabled:
+                continue
+            cfg = ch.get_config() or {}
+            agent_name = cfg.get("agent_name") or ch.id.split("_", 1)[-1]
+            label = label_by_key.get(ch.platform, ch.platform)
+            agent_msgs.setdefault(agent_name, []).append(label)
+
         if not agents:
             print("  No agents configured.")
-            print("  Create one with: orcanium agent setup")
+            print("  Create one with: orcanium agent create")
             return
 
-        print(f"  {'Agent':<20} {'Provider':<15} {'Model':<20} {'Status':<10}")
-        print(f"  {'─'*20} {'─'*15} {'─'*20} {'─'*10}")
+        print(f"  {'Agent':<20} {'Provider':<15} {'Model':<20} {'Status':<10} {'Messaging'}")
+        print(f"  {'─'*20} {'─'*15} {'─'*20} {'─'*10} {'─'*30}")
         for a in agents:
             prov = a.model_provider or "—"
             model = a.model_name or "—"
             status = a.status or "stopped"
             status_dot = "●" if status == "running" else "○"
-            print(f"  {a.name:<20} {prov:<15} {model:<20} {status_dot} {status}")
+            msgs = ", ".join(agent_msgs.get(a.name, [])) or "—"
+            print(f"  {a.name:<20} {prov:<15} {model:<20} {status_dot} {status:<9} {msgs}")
         print()
         print(f"  {len(agents)} agent(s)")
-        print("  orcanium agent setup          — Create new agents")
+        print("  orcanium agent create         — Create new agents")
         print("  orcanium agent info <name>    — Show agent details")
+        print("  orcanium agent config <name>  — Manage messaging channels")
     finally:
         db.close()
 
@@ -488,6 +517,92 @@ def _cmd_agent_info(args: Any) -> None:
             print(f"  Model:     {a.model_name or '—'}")
             print(f"  Sessions:  {a.active_sessions or 0}")
             print()
+    finally:
+        db.close()
+
+
+def _cmd_agent_config(args: Any) -> None:
+    """Manage a single agent's messaging channel connections (add/remove)."""
+    from orcanium.cli.channel import _all_platforms
+
+    name = args.name
+    label_by_key = {
+        p.get("key", ""): p.get("label", p.get("key", "")) for p in _all_platforms()
+    }
+
+    db = SessionLocal()
+    try:
+        agent = db.query(AgentState).filter(AgentState.name == name).first()
+        if not agent:
+            print(f"  No agent named '{name}'.")
+            return
+
+        def _channels_for() -> list[ChannelConfig]:
+            rows = []
+            for ch in db.query(ChannelConfig).all():
+                cfg = ch.get_config() or {}
+                aname = cfg.get("agent_name") or ch.id.split("_", 1)[-1]
+                if aname == name:
+                    rows.append(ch)
+            return rows
+
+        def _add_channel(platforms) -> None:
+            keys = [p["key"] for p in platforms]
+            labels = [f"{p['emoji']} {p['label']}" for p in platforms]
+            idx = _prompt_numbered(labels, "Select platform", default=0)
+            if idx < 0:
+                return
+            platform = keys[idx]
+            connected = {ch.platform for ch in _channels_for()}
+            if platform in connected:
+                print(f"  {label_by_key.get(platform, platform)} already connected to '{name}'.")
+                return
+            ch = ChannelConfig(id=f"{platform}_{name}", platform=platform, enabled=True)
+            ch.set_config({"agent_name": name})
+            db.add(ch)
+            db.commit()
+            print(f"  Connected {label_by_key.get(platform, platform)} to '{name}'.")
+
+        def _remove_channel(channels) -> None:
+            if not channels:
+                print("  No channels to remove.")
+                return
+            labels = [label_by_key.get(ch.platform, ch.platform) for ch in channels]
+            idx = _prompt_numbered(labels, "Select channel to disconnect", default=0)
+            if idx < 0:
+                return
+            db.delete(channels[idx])
+            db.commit()
+            print(f"  Disconnected {labels[idx]} from '{name}'.")
+
+        while True:
+            channels = _channels_for()
+            print(f"\n  Agent: {name}")
+            if channels:
+                print("  Messaging channels:")
+                for ch in channels:
+                    lbl = label_by_key.get(ch.platform, ch.platform)
+                    state = "enabled" if ch.enabled else "disabled"
+                    print(f"    - {lbl} ({state})")
+            else:
+                print("  No messaging channels connected.")
+            choice = _prompt_numbered(
+                ["Add a messaging channel", "Remove a messaging channel", "Done"],
+                "Action",
+                default=2,
+            )
+            if choice < 0:
+                return
+            if choice == 0:
+                _add_channel(_all_platforms())
+            elif choice == 1:
+                _remove_channel(channels)
+            else:
+                print(
+                    "  Model/provider are overridable via `orcanium agent edit`, "
+                    "`orcanium model`, or the web/chat/messaging interfaces."
+                )
+                return
     finally:
         db.close()
 

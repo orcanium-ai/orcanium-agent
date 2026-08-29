@@ -54,7 +54,7 @@ Examples:
     orcanium auth list              List pooled credentials
     orcanium auth remove <p> <t>    Remove pooled credential by index, id, or label
     orcanium auth reset <provider>  Clear exhaustion status for a provider
-    orcanium agent setup            Create and configure agents
+    orcanium agent create           Create and configure agents
     orcanium agent list             List all agents
     orcanium fallback list          Show fallback provider chain
     orcanium fallback add           Add a fallback provider
