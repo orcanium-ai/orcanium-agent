@@ -6041,6 +6041,125 @@ def _update_via_zip(args):
     _kill_stale_dashboard_processes()
 
 
+def _update_via_release(args) -> None:
+    """Update orcanium Agent from the versioned release tarball (no git).
+
+    Distribution model is release artifacts: download the tarball from GitHub
+    Releases, validate + extract, swap the source under ``$ORCANIUM_HOME/src``,
+    and reinstall deps via ``uv sync --locked`` (the same command setup.sh uses).
+    """
+    import stat as _stat
+    import tarfile
+    import tempfile
+    from urllib.request import urlretrieve
+
+    from orcanium.cli.config import get_orcanium_home
+
+    home = get_orcanium_home()
+    src_dir = home / "src"
+    project_dir = src_dir / "orcanium"
+    venv_dir = home / "venv"
+    release_url = os.environ.get(
+        "ORCANIUM_RELEASE_URL",
+        "https://github.com/orcanium-ai/orcanium-agent/releases/latest/download/orcanium-agent-release.tar.gz",
+    )
+
+    print("→ Downloading latest release...")
+    tmp_dir = tempfile.mkdtemp(prefix="orcanium-update-")
+    try:
+        tarball = os.path.join(tmp_dir, "orcanium-agent-release.tar.gz")
+        urlretrieve(release_url, tarball)
+
+        print("→ Extracting...")
+        with tarfile.open(tarball, "r:gz") as tf:
+            root_real = os.path.realpath(tmp_dir) + os.sep
+            for member in tf.getmembers():
+                mpath = os.path.realpath(os.path.join(tmp_dir, member.name))
+                if not mpath.startswith(root_real):
+                    raise ValueError(f"Path traversal in release archive: {member.name}")
+                if member.issym() or member.islnk():
+                    raise ValueError(f"Release archive contains symlink: {member.name}")
+            tf.extractall(tmp_dir)
+
+        # Swap the source package wholesale (venv lives outside src/, so no preserve set).
+        new_pkg = os.path.join(tmp_dir, "orcanium")
+        if not os.path.isdir(new_pkg):
+            raise ValueError("Release archive is missing the orcanium/ package dir")
+        if os.path.exists(project_dir):
+            shutil.rmtree(project_dir)
+        shutil.copytree(new_pkg, project_dir)
+
+        # Refresh setup.sh / bin at the src root if shipped in the archive.
+        for extra in ("setup.sh", "bin"):
+            e_src = os.path.join(tmp_dir, extra)
+            e_dst = os.path.join(str(src_dir), extra)
+            if os.path.isdir(e_src):
+                shutil.rmtree(e_dst, ignore_errors=True)
+                shutil.copytree(e_src, e_dst)
+            elif os.path.isfile(e_src):
+                shutil.copy2(e_src, e_dst)
+    except Exception as e:
+        print(f"✗ Release update failed: {e}")
+        sys.exit(1)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    removed = _clear_bytecode_cache(project_dir)
+    if removed:
+        print(
+            f"  ✓ Cleared {removed} stale __pycache__ director{'y' if removed == 1 else 'ies'}"
+        )
+
+    print("→ Updating Python dependencies...")
+    from orcanium.cli.managed_uv import ensure_uv
+
+    uv_bin = ensure_uv()  # installs uv if missing
+    if not uv_bin:
+        print("✗ uv not available; install it and rerun `orcanium update`.")
+        sys.exit(1)
+    env = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
+    subprocess.run(
+        [uv_bin, "sync", "--locked", "--project", str(project_dir)],
+        env=env,
+        check=True,
+    )
+
+    # uv sync installs the project editable, which overwrites venv/bin/orcanium
+    # with the wheel's (broken) console script. Rewrite the launcher so the
+    # command keeps resolving the package from the source dir — same as setup.sh.
+    launcher = venv_dir / "bin" / "orcanium"
+    launcher.write_text(
+        "#!/usr/bin/env bash\nset -euo pipefail\n"
+        f'export PYTHONPATH="{src_dir}"${{PYTHONPATH:+:$PYTHONPATH}}\n'
+        f'exec "{venv_dir}/bin/python" -m orcanium.cli "$@"\n',
+        encoding="utf-8",
+    )
+    launcher.chmod(0o755)
+
+    # Sync bundled skills (non-fatal).
+    try:
+        from orcanium.app.tools.skills_sync import sync_skills
+
+        result = sync_skills(quiet=True)
+        if result["copied"]:
+            print(f"  + {len(result['copied'])} new skills")
+    except Exception:
+        pass
+
+    # Refresh the model-catalog disk cache (non-fatal).
+    try:
+        from orcanium.cli.model_catalog import seed_cache_from_checkout
+
+        if seed_cache_from_checkout(PROJECT_ROOT):
+            print("  ✓ Model catalog cache refreshed")
+    except Exception as e:
+        logger.debug("Model catalog seed during release update failed: %s", e)
+
+    print()
+    print("✓ Update complete!")
+    _kill_stale_dashboard_processes()
+
+
 def _stash_local_changes_if_needed(git_cmd: list[str], cwd: Path) -> Optional[str]:
     status = subprocess.run(
         git_cmd + ["status", "--porcelain"],
@@ -8320,6 +8439,14 @@ def _cmd_update_impl(args, rpc_mode: bool):
     # Pre-update backup — runs before any git/file mutation so users can
     # always roll back to the exact state they had before this update.
     _run_pre_update_backup(args)
+
+    # Release-artifact installs (setup.sh downloads a tarball, no git checkout)
+    # update by swapping the source tarball instead of git fetch/pull.
+    from orcanium.cli.config import detect_install_method
+
+    if detect_install_method(PROJECT_ROOT) == "release":
+        _update_via_release(args)
+        return
 
     # Try git-based update first, fall back to ZIP download on Windows
     # when git file I/O is broken (antivirus, NTFS filter drivers, etc.)

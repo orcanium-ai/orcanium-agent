@@ -16,7 +16,7 @@ import sys
 # Patch reference-agent imports BEFORE any other CLI module loads
 from orcanium.cli.compat import *  # noqa: F401
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __release_date__ = "2026.8.01"
 
 

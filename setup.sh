@@ -5,10 +5,11 @@
 #
 set -euo pipefail
 
-REPO="${ORCANIUM_REPO:-https://github.com/orcanium-ai/orcanium-agent.git}"
-BRANCH="${ORCANIUM_BRANCH:-main}"
+# Release artifact URL (override for testing/local builds). The asset is
+# version-less so `releases/latest/download` resolves without a version.
+RELEASE_URL="${ORCANIUM_RELEASE_URL:-https://github.com/orcanium-ai/orcanium-agent/releases/latest/download/orcanium-agent-release.tar.gz}"
 INSTALL_DIR="${ORCANIUM_HOME:-$HOME/.orcanium}"
-# pyproject.toml + uv.lock live in the orcanium/ subdir of the checkout
+# pyproject.toml + uv.lock live in the orcanium/ subdir of the extracted release
 PROJECT_DIR="$INSTALL_DIR/src/orcanium"
 
 BOLD='\033[1m'
@@ -26,7 +27,9 @@ echo "  Target:  $INSTALL_DIR"
 echo ""
 
 step "Checking prerequisites..."
-command -v git &>/dev/null || fail "git required: https://git-scm.com"
+if ! command -v curl &>/dev/null; then
+    fail "curl required (used to download the release)"
+fi
 if ! command -v uv &>/dev/null; then
     info "uv not found — installing..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -39,17 +42,17 @@ step "Setting up directory structure..."
 mkdir -p "$INSTALL_DIR"/{data/{agents,sessions,gateway},bin}
 info "Created $INSTALL_DIR"
 
-step "Fetching source..."
-if [ -d "$INSTALL_DIR/src/.git" ]; then
-    # Update existing checkout. Pull requires <remote> <refspec>; passing just
-    # a branch name makes git interpret it as a remote, which silently fails.
-    git -C "$INSTALL_DIR/src" fetch --depth 1 origin "$BRANCH"
-    git -C "$INSTALL_DIR/src" reset --hard "origin/$BRANCH"
-else
-    rm -rf "$INSTALL_DIR/src"
-    git clone --depth 1 --branch "$BRANCH" "$REPO" "$INSTALL_DIR/src"
-fi
-info "Repository ready"
+step "Downloading release..."
+rm -rf "$INSTALL_DIR/src"
+mkdir -p "$INSTALL_DIR/src"
+curl -fsSL "$RELEASE_URL" -o "$INSTALL_DIR/src/orcanium-agent-release.tar.gz"
+tar -xzf "$INSTALL_DIR/src/orcanium-agent-release.tar.gz" -C "$INSTALL_DIR/src"
+rm -f "$INSTALL_DIR/src/orcanium-agent-release.tar.gz"
+info "Release extracted to $INSTALL_DIR/src"
+
+step "Stamping install method..."
+echo "release" > "$INSTALL_DIR/.install_method"
+info "Install method: release"
 
 step "Installing with uv (locked to uv.lock)..."
 # uv sync creates the venv at UV_PROJECT_ENVIRONMENT and installs the project
