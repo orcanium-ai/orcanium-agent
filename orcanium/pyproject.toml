@@ -57,6 +57,11 @@ dependencies = [
   # Responses API resource is exercised from a non-main thread, which is the
   # codex_responses dispatch in agent/chat_completion_helpers.py:_call.
   "pydantic==2.13.4",
+  # Imported at import-time by app/core/config.py (every session). Was only a
+  # transitive of a backend extra, so core installs failed with
+  # ModuleNotFoundError once the CLI actually imported. Exact-pinned per the
+  # core-deps rule; version matches what uv.lock already resolved.
+  "pydantic-settings==2.15.0",
   # Interactive CLI (prompt_toolkit is used directly by cli.py)
   "prompt_toolkit==3.0.52",
   # Cron scheduler (built-in feature — scheduled cron/interval jobs use croniter).

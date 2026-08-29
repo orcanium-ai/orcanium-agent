@@ -5,10 +5,11 @@
 #
 set -euo pipefail
 
-REPO="${ORCANIUM_REPO:-https://github.com/orcanium/orcanium.git}"
+REPO="${ORCANIUM_REPO:-https://github.com/orcanium-ai/orcanium-agent.git}"
 BRANCH="${ORCANIUM_BRANCH:-main}"
 INSTALL_DIR="${ORCANIUM_HOME:-$HOME/.orcanium}"
-PYTHON="${ORCANIUM_PYTHON:-python3}"
+# pyproject.toml + uv.lock live in the orcanium/ subdir of the checkout
+PROJECT_DIR="$INSTALL_DIR/src/orcanium"
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'
@@ -24,21 +25,15 @@ step "Orcanium Installer"
 echo "  Target:  $INSTALL_DIR"
 echo ""
 
-step "Checking Python..."
-if ! command -v "$PYTHON" &>/dev/null; then
-    fail "Python 3.11+ required: https://python.org"
+step "Checking prerequisites..."
+command -v git &>/dev/null || fail "git required: https://git-scm.com"
+if ! command -v uv &>/dev/null; then
+    info "uv not found — installing..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    command -v uv &>/dev/null || fail "uv install failed — add ~/.local/bin to PATH and rerun"
 fi
-# grep -oE for portability (BSD grep on macOS lacks -P / PCRE)
-PY_VER=$("$PYTHON" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-if awk "BEGIN {exit !($PY_VER < 3.11)}"; then
-    fail "Python 3.11+ required (found $PY_VER)"
-fi
-info "Python $PY_VER"
-
-step "Checking git and pip..."
-command -v git  &>/dev/null || fail "git required: https://git-scm.com"
-"$PYTHON" -m pip --version &>/dev/null || fail "pip required (python -m ensurepip)"
-info "git and pip available"
+info "uv $(uv --version | cut -d' ' -f2)"
 
 step "Setting up directory structure..."
 mkdir -p "$INSTALL_DIR"/{data/{agents,sessions,gateway},bin}
@@ -56,22 +51,37 @@ else
 fi
 info "Repository ready"
 
-step "Creating virtual environment..."
-if [ ! -x "$INSTALL_DIR/venv/bin/python" ]; then
-    "$PYTHON" -m venv "$INSTALL_DIR/venv"
+step "Installing with uv (locked to uv.lock)..."
+# uv sync creates the venv at UV_PROJECT_ENVIRONMENT and installs the project
+# + all deps hash-verified against orcanium/uv.lock. --locked refuses to
+# silently re-resolve from PyPI if the lockfile goes stale.
+if UV_PROJECT_ENVIRONMENT="$INSTALL_DIR/venv" uv sync --locked --project "$PROJECT_DIR"; then
+    info "Dependencies installed (hash-verified via uv.lock)"
+else
+    info "Lockfile sync failed — re-resolving (not hash-verified)"
+    UV_PROJECT_ENVIRONMENT="$INSTALL_DIR/venv" uv sync --project "$PROJECT_DIR"
 fi
 info "venv at $INSTALL_DIR/venv"
 
-step "Installing dependencies..."
-"$INSTALL_DIR/venv/bin/pip" install --quiet --upgrade pip
-"$INSTALL_DIR/venv/bin/pip" install --quiet -e "$INSTALL_DIR/src/orcanium/"
-info "Dependencies installed"
-
-step "Verifying entry point..."
-if [ ! -x "$INSTALL_DIR/venv/bin/orcanium" ]; then
-    fail "pip install succeeded but $INSTALL_DIR/venv/bin/orcanium is missing"
-fi
-info "Entry point at $INSTALL_DIR/venv/bin/orcanium"
+step "Wiring orcanium launcher..."
+# The wheel's console script is broken: this project uses a root-package
+# layout (orcanium package == project dir), which setuptools won't ship under
+# py-modules. So instead of relying on venv/bin/orcanium from the wheel, write
+# a launcher that runs the CLI from the source checkout — same mechanism as
+# bin/orcanium. PYTHONPATH is $INSTALL_DIR/src (the clone root) so `orcanium`
+# resolves to $INSTALL_DIR/src/orcanium.
+cat > "$INSTALL_DIR/venv/bin/orcanium" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH="@SRC@${PYTHONPATH:+:$PYTHONPATH}"
+exec "@VENV@/bin/python" -m orcanium.cli "$@"
+EOF
+sed -i.bak \
+    -e "s|@SRC@|$INSTALL_DIR/src|" \
+    -e "s|@VENV@|$INSTALL_DIR/venv|" \
+    "$INSTALL_DIR/venv/bin/orcanium" && rm -f "$INSTALL_DIR/venv/bin/orcanium.bak"
+chmod +x "$INSTALL_DIR/venv/bin/orcanium"
+info "Launcher at $INSTALL_DIR/venv/bin/orcanium"
 
 step "Seeding config..."
 CONFIG_EXAMPLE="$INSTALL_DIR/src/orcanium/cli-config.yaml.example"
