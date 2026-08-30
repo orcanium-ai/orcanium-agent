@@ -162,6 +162,17 @@ orcanium run         — Interactive agent session
 orcanium dashboard   — Launch local web admin UI
 ```
 
+### Configuration files
+
+Two top-level config files live in `~/.orcanium/`; they are distinct, not duplicates:
+
+| File | Consumer | Contents |
+|---|---|---|
+| `config.yaml` | CLI / agent / gateway | Full agent & runtime settings (`_config_version`), written by `orcanium setup` |
+| `dashboard.yaml` | Web dashboard / REST API | Thin UI settings (`model_providers`, theme, telemetry) |
+
+(The dashboard file was previously `config.yml`; it was renamed to `dashboard.yaml` to avoid confusion with `config.yaml`. An existing `config.yml` is migrated automatically on the dashboard's next start.)
+
 ---
 
 ## 🔌 API

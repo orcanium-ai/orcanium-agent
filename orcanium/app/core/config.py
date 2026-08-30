@@ -26,7 +26,7 @@ AGENTS_DIR = ORCANIUM_DIR / "agents"
 KNOWLEDGE_DIR = ORCANIUM_DIR / "knowledge"
 LOGS_DIR = ORCANIUM_DIR / "logs"
 DB_PATH = ORCANIUM_DIR / "state.db"
-CONFIG_PATH = ORCANIUM_DIR / "config.yml"
+CONFIG_PATH = ORCANIUM_DIR / "dashboard.yaml"
 
 
 class Settings(BaseSettings):
@@ -119,6 +119,17 @@ def ensure_orcanium_dirs():
     KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # One-time migration: the web-dashboard config was historically
+    # ~/.orcanium/config.yml, which read as a confusing near-duplicate of the
+    # CLI's config.yaml. Renamed to dashboard.yaml; carry over an existing
+    # config.yml so no dashboard settings are lost.
+    _legacy_config = ORCANIUM_DIR / "config.yml"
+    if not CONFIG_PATH.exists() and _legacy_config.exists():
+        try:
+            os.replace(_legacy_config, CONFIG_PATH)
+        except OSError:
+            pass
+
     # Initialize default config if not present
     if not CONFIG_PATH.exists():
         default_config = {
@@ -142,7 +153,7 @@ def ensure_orcanium_dirs():
 
 
 def get_config_file_path() -> str:
-    """Return the absolute path to the config.yml file."""
+    """Return the absolute path to the dashboard.yaml file."""
     ensure_orcanium_dirs()
     return str(CONFIG_PATH)
 
@@ -154,7 +165,7 @@ def load_system_config() -> Dict[str, Any]:
             try:
                 return yaml.safe_load(f) or {}
             except Exception as e:
-                logger.warning(f"Failed to parse config.yml: {e}")
+                logger.warning(f"Failed to parse dashboard.yaml: {e}")
                 return {}
     return {}
 

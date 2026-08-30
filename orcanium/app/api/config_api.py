@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/")
 def get_full_config():
-    """Return the entire config.yml contents as a JSON object."""
+    """Return the entire dashboard.yaml contents as a JSON object."""
     try:
         cfg = load_system_config()
         return cfg
@@ -56,7 +56,7 @@ def save_raw_config(payload: Dict[str, Any] = Body(...)):
 
 @router.put("/update")
 def update_config(payload: Dict[str, Any] = Body(...)):
-    """Update the config.yml with the provided key-value pairs (shallow merge)."""
+    """Update the dashboard.yaml with the provided key-value pairs (shallow merge)."""
     try:
         update_system_config(payload)
         return {"status": "success", "config": load_system_config()}
@@ -66,7 +66,7 @@ def update_config(payload: Dict[str, Any] = Body(...)):
 
 @router.post("/reload")
 def trigger_reload():
-    """Reload runtime settings from .env and config.yml."""
+    """Reload runtime settings from .env and dashboard.yaml."""
     from orcanium.app.core.config import reload_settings
 
     reload_settings()
