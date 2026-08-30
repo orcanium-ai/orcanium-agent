@@ -5,14 +5,14 @@
 Orcanium is the open-source, locally runnable agent runtime: CLI, terminal UI, REST API with SSE streaming, messaging channels, plugin system, and local web dashboard. It is independent from Orcanium's private services — local and BYOK operation require no account.
 
 <p align="center">
-  <a href="https://github.com/orcanium/orcanium">
+  <a href="https://github.com/orcanium-ai/orcanium-agent">
     <img src="https://img.shields.io/badge/development-active-green" />
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-Apache%202.0-black" />
   </a>
-  <a href="https://pypi.org/project/orcanium/">
-    <img src="https://img.shields.io/badge/pypi-v0.1.0-blue" />
+  <a href="https://github.com/orcanium-ai/orcanium-agent/releases">
+    <img src="https://img.shields.io/badge/releases-github-blue" />
   </a>
 </p>
 
@@ -30,18 +30,17 @@ Bring your own keys, run fully local, or mix both. No account, no vendor lock-in
 
 ## 🚀 Quick Start
 
-Install Orcanium and start your first agent session:
-
-```bash
-uv pip install orcanium
-orcanium setup
-orcanium run
-```
-
-Or one-line install from the repo (installs to `~/.orcanium/`):
+One-line install — downloads the latest release tarball to `~/.orcanium/` (no git needed):
 
 ```bash
 curl -fsSL https://orcanium.com/install.sh | bash
+```
+
+Then start your first agent session:
+
+```bash
+orcanium setup
+orcanium run
 ```
 
 ---
@@ -154,12 +153,15 @@ User → REST API / SSE
 ## ⌨️ CLI
 
 ```
-orcanium channel     — Start/stop messaging channel adapters (Telegram, etc.)
-orcanium doctor      — System health diagnostics
-orcanium update      — Self-update
-orcanium setup       — Initial configuration
-orcanium run         — Interactive agent session
-orcanium dashboard   — Launch local web admin UI
+orcanium agent           — List agents (name, provider, model, status, messaging channels)
+orcanium agent create    — Create new agents
+orcanium agent config <name> — Manage an agent's messaging channels
+orcanium channel         — Start/stop messaging channel adapters (Telegram, etc.)
+orcanium doctor          — System health diagnostics
+orcanium update          — Self-update (downloads the latest release)
+orcanium setup           — Initial configuration
+orcanium run             — Interactive agent session
+orcanium dashboard       — Launch local web admin UI
 ```
 
 ### Configuration files
@@ -216,6 +218,12 @@ The standalone release gate validates package syntax, core imports, and the publ
 
 ```bash
 python scripts/release_gate.py
+```
+
+Cutting a release (triggered by pushing a `v*` tag) builds and uploads the install tarball:
+
+```bash
+python scripts/build_release.py      # → dist/orcanium-agent-release.tar.gz
 ```
 
 ---
